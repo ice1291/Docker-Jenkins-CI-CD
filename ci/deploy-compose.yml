@@ -1,0 +1,29 @@
+version: "3"
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+  app:
+    image: 192.168.88.131:5000/demo-flask:${TAG}
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=app
+      - DB_PASS=apppass
+    depends_on:
+      - mysql
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=appdb
+      - MYSQL_USER=app
+      - MYSQL_PASSWORD=apppass
+    volumes:
+      - mysql_data:/var/lib/mysql
+volumes:
+  mysql_data:
