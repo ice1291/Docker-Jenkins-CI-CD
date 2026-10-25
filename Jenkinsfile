@@ -37,15 +37,25 @@ pipeline {
             }
         }
         stage('远程部署') {
-            steps {
-                sshagent(['deploy-ssh']) {
-                    sh "ssh $SSHFLAGS $DEPLOY 'mkdir -p /opt/app'"
-                    sh "scp $SSHFLAGS deploy-compose.yml deploy.sh nginx.conf $DEPLOY:/opt/app/"
-                    sh "ssh $SSHFLAGS $DEPLOY 'cd /opt/app && TAG=${TAG} bash deploy.sh ${TAG}'"
-                }
+    steps {
+        withCredentials([sshUserPrivateKey(credentialsId: 'deploy-ssh', keyFileVariable: 'KEY_FILE', usernameVariable: 'KEY_USER')]) {
+            script {
+                def remote = [:]
+                remote.name = 'server3'
+                remote.host = '192.168.88.133'
+                remote.user = KEY_USER
+                remote.identityFile = KEY_FILE
+                remote.allowAnyHosts = true   // 等价于 ssh 的 StrictHostKeyChecking=no
+                sshCommand remote: remote, command: 'mkdir -p /opt/app'
+                sshPut remote: remote, from: 'deploy-compose.yml', into: '/opt/app/'
+                sshPut remote: remote, from: 'deploy.sh', into: '/opt/app/'
+                sshPut remote: remote, from: 'nginx.conf', into: '/opt/app/'
+                sshCommand remote: remote, command: "cd /opt/app && TAG=${TAG} bash deploy.sh ${TAG}"
             }
         }
     }
+}
+
     post {
         failure { echo '❌ 流水线失败，已阻断发布' }
         success { echo '✅ 构建并部署成功' }
