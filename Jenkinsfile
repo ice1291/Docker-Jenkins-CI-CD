@@ -12,7 +12,8 @@ pipeline {
             steps {
                 script {
                     // 在一次性 python 容器里跑测试，环境干净、可复现
-                    docker.image('python:3.12-slim').inside {
+                    // 以 root 运行并给可写 HOME，避免 uid1000 无权限装包到 /.local 报 Permission denied
+                    docker.image('python:3.12-slim').inside('-u root -e HOME=/root') {
                         sh 'pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple && python -m pytest test_app.py'
                     }
                 }
@@ -50,3 +51,4 @@ pipeline {
         success { echo '✅ 构建并部署成功' }
     }
 }
+
